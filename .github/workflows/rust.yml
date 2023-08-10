@@ -1,0 +1,72 @@
+---
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+env:
+  CACHE_VERSION: v1
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions/cache@v2
+        with:
+          key: "${{ runner.os }}-rust-build-${{ env.CACHE_VERSION }}-${{ github.sha }}"
+          restore-keys: |
+            ${{ runner.os }}-rust-build-${{ env.CACHE_VERSION }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+      - name: cargo build --release
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-unknown-linux-musl # build static binaries
+      - uses: actions/cache@v2
+        with:
+          key: "${{ runner.os }}-rust-test-${{ env.CACHE_VERSION }}-${{ github.sha }}"
+          restore-keys: |
+            ${{ runner.os }}-rust-test-${{ env.CACHE_VERSION }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+      # cargo test
+      - name: cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+  audit:
+    runs-on: ubuntu-latest
+    if: false
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/audit-check@v1
+        with:
+          # token: ${{ secrets.GH_API_TOKEN }}
+          token: UNDEFINED
